@@ -1,10 +1,38 @@
+import holo_flow/[holo_reader, holo_writer], std/[tables, hashes]
+
 type
-  GrimeReadFormat* = object
+  GrimeFormat* = object
     endian*: Endianness = cpuEndian
+    dict*: bool
+  GrimeDumpFormat* = object
+    shared*: GrimeFormat
+  GrimeReadFormat* = object
+    shared*: GrimeFormat
     skip*: bool
       ## skip current value
-  GrimeDumpFormat* = object
-    endian*: Endianness = cpuEndian
+
+type
+  DictionaryIdImpl* = int
+  DictionaryId* = distinct DictionaryIdImpl
+  ReferenceIdentity* = distinct uint
+  Dictionary* = object
+    data*: seq[HoloReader] # DictionaryId are indexes + 1, since 0 is nil
+  GrimeDumper* = object
+    dict*: HoloWriter
+    dictIds*: OrderedTable[ReferenceIdentity, DictionaryId]
+    data*: HoloWriter
+  GrimeReader* = object
+    dict*: Dictionary
+    dictPointers*: OrderedTable[DictionaryId, pointer]
+    data*: HoloReader
+
+proc `==`*(a, b: DictionaryId): bool {.borrow.}
+proc hash*(a: DictionaryId): Hash {.borrow.}
+proc `==`*(a, b: ReferenceIdentity): bool {.borrow.}
+proc hash*(a: ReferenceIdentity): Hash {.borrow.}
+
+type
+  SomeGrimeFormat* = GrimeReadFormat | GrimeDumpFormat
 
 type
   GrimeError* = object of ValueError
@@ -13,7 +41,9 @@ type
     ## but could not be fit into the expected value
   GrimeReadError* = object of GrimeError
     ## error for invalid binary
+  GrimeDictError* = object of GrimeError
+    ## error for a value that could not be found in the dictionary
 
 when (compiles do: import holo_map/groups):
   import holo_map/groups
-  const Grime* = MappingGroup(id: "grime", parents: @[])
+  const Grime* = MappingGroup(id: "grime", parents: @[Binary])
