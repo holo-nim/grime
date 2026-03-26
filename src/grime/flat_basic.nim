@@ -277,9 +277,10 @@ proc dump*(format: static GrimeDumpFormat, writer: var HoloWriter, v: float) =
 
 proc read*(format: static GrimeReadFormat, reader: var HoloReader, v: var float) {.inline.} =
   when nimvm:
-    var impl: uint64
-    read(format, reader, impl)
-    v = cast[float](impl)
+    block:
+      var impl: uint64
+      read(format, reader, impl)
+      v = cast[float](impl)
   else:
     when defined(js):
       var u: uint64
@@ -333,9 +334,10 @@ proc dump*(format: static GrimeDumpFormat, writer: var HoloWriter, v: float32) =
 
 proc read*(format: static GrimeReadFormat, reader: var HoloReader, v: var float32) {.inline.} =
   when nimvm:
-    var impl: uint32
-    read(format, reader, impl)
-    v = cast[float32](impl)
+    block:
+      var impl: uint32
+      read(format, reader, impl)
+      v = cast[float32](impl)
   else:
     when defined(js):
       var u: uint32
