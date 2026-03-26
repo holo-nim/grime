@@ -168,16 +168,3 @@ proc read*[K](format: static GrimeReadFormat, reader: var HoloReader, tab: var C
     var v: int
     format.read reader, v
     tab[k] = v
-
-when false: # dont special case
-  proc dump*[K, V](format: static GrimeDumpFormat, writer: var HoloWriter, tab: TableRef[K, V]) =
-    ## Dump an object.
-    dumpTableImpl(format, writer, tab, K, V)
-
-  proc dump*[K, V](format: static GrimeDumpFormat, writer: var HoloWriter, tab: OrderedTableRef[K, V]) =
-    ## Dump an object.
-    dumpTableImpl(format, writer, tab, K, V)
-
-  proc dump*[K](format: static GrimeDumpFormat, writer: var HoloWriter, tab: CountTableRef[K]) =
-    ## Dump an object.
-    dumpTableImpl(format, writer, tab, K, int)

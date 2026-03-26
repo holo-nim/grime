@@ -1,9 +1,46 @@
-import ./common, holo_flow/[holo_reader, holo_writer], std/tables
+import ./common, holo_flow/[holo_reader, holo_writer], std/[tables, macros, macrocache]
 
 type SizeImpl* = int
 
 template dictByteCount*[T: ref | ptr](format: static GrimeFormat, x: T): int =
   sizeof(DictionaryIdImpl)
+
+when defined(js) and grimeTrackJsDictReferences:
+  var grimeReferenceMap: int
+  var grimeReferenceCount = 0
+  {.emit: """
+  `grimeReferenceMap` = new WeakMap();
+  """.}
+
+proc getReferenceIdentity*[T: ref | ptr](format: static GrimeDumpFormat, dumper: var GrimeDumper, x: T): ReferenceIdentity {.inline.} =
+  when nimvm:
+    when false: # does not work
+      var tracked {.global.}: seq[(T, int)] = @[]
+      const countedReferences = CacheCounter"grime.referenceidentities"
+      for p, i in tracked.items:
+        if x == p: return ReferenceIdentity(i)
+      inc countedReferences
+      result = ReferenceIdentity(countedReferences.value)
+      tracked.add (x, result.int)
+    else:
+      result = ReferenceIdentity(dumper.dictIds.len + 1)
+  else:
+    when defined(nimscript):
+      result = ReferenceIdentity(dumper.dictIds.len + 1)
+    elif defined(js):
+      when grimeTrackJsDictReferences:
+        {.emit: ["""
+        if (""", grimeReferenceMap, """.has(""", x, """)) {
+          """, result, """ = """, grimeReferenceMap, """.get(""", x, """);
+        } else {
+          """, result, """ = ++""", grimeReferenceCount, """;
+          """, grimeReferenceMap, """.set(""", x, """, """, result, """);
+        }
+        """].}
+      else:
+        result = ReferenceIdentity(dumper.dictIds.len + 1)
+    else:
+      result = cast[ReferenceIdentity](cast[pointer](x))
 
 template derefPointer*[T: ref | ptr](format: static GrimeDumpFormat, x: T): untyped =
   x[]
@@ -16,14 +53,7 @@ proc dumpPointer*[T](
   if val.isNil:
     dump(format, dumper, DictionaryIdImpl(0))
   else:
-    var p: ReferenceIdentity
-    when nimvm:
-      p = ReferenceIdentity(dumper.dictIds.len + 1)
-    else:
-      when defined(nimscript) or defined(js):
-        p = ReferenceIdentity(dumper.dictIds.len + 1)
-      else:
-        p = cast[ReferenceIdentity](cast[pointer](val))
+    let p = getReferenceIdentity(format, dumper, val)
     #echo "got identity ", $p.uint, " for type ", T
     if p in dumper.dictIds:
       let id = dumper.dictIds[p]
@@ -35,13 +65,15 @@ proc dumpPointer*[T](
       dumper.dictIds[p] = id
       # option to calculate this or write it out could go in format:
       let size = byteCount(format.shared, derefPointer(format, val))
-      var dictEntry = initHoloWriter()
-      dictEntry.startWrite()
-      swap dumper.data, dictEntry
+      var trailingDict = initHoloWriter()
+      trailingDict.startWrite()
+      swap dumper.dict, dumper.data
+      swap trailingDict, dumper.dict
       dump(format, dumper, SizeImpl size)
       dump(format, dumper, derefPointer(format, val))
-      swap dumper.data, dictEntry
-      dumper.dict.write finishWrite(dictEntry)
+      swap trailingDict, dumper.dict
+      swap dumper.dict, dumper.data
+      dumper.dict.write finishWrite(trailingDict)
       dump(format, dumper, id)
 
 type GrimeMergeFormat* = object
@@ -76,6 +108,7 @@ proc split*(format: static GrimeSplitFormat, reader: SplitReader, merged: var Gr
     var data = newString(size)
     if peek(reader, data):
       unsafeNextBy(reader, size)
+      #echo "read entry ", merged.dict.data.len, " with size ", size, ": ", data.toOpenArrayByte(0, data.high)
       var entry = initHoloReader()
       startRead(entry, move data)
       merged.dict.data.add entry
@@ -117,52 +150,8 @@ proc readPointer*[T](
       when nimvm:
         discard
       else:
-        reader.dictPointers[id] = cast[pointer](val)
+        reader.dictPointers[id] = cast[AnyPointer](val)
       var dictReader = move reader.dict.data[index]
       swap reader.data, dictReader
       read(format, reader, val[])
       swap reader.data, dictReader
-
-when false:
-  proc read*[T](
-      format: static GrimeReadFormat,
-      reader: var GrimeReader,
-      val: var ref T) =
-    readPointer(format, reader, val)
-
-  proc read*[T](
-      format: static GrimeReadFormat,
-      reader: var GrimeReader,
-      val: var ptr T) =
-    readPointer(format, reader, val)
-
-  proc dumpDictGrime*[T](writer: var HoloWriter, v: T, format: static GrimeDictMergeFormat) {.inline.} =
-    mixin dump
-    dump(GrimeDumpFormat(), writer, v)
-
-  proc dumpFlatGrime*[T](s: var string, v: T) {.inline.} =
-    mixin dump
-    dump(GrimeDumpFormat(), s, v)
-
-  proc readFlatGrime*[T](reader: var HoloReader, v: var T) {.inline.} =
-    mixin read
-    read(GrimeReadFormat(), reader, v)
-
-  proc readFlatGrime*[T](reader: var HoloReader, _: typedesc[T]): T {.inline.} =
-    mixin read
-    read(GrimeReadFormat(), reader, result)
-
-  proc toFlatGrime*[T](v: T): string {.inline.} =
-    mixin dump
-    dump(GrimeDumpFormat(), result, v)
-
-  proc fromFlatGrime*[T](s: string, x: typedesc[T], format: static GrimeReadFormat = GrimeReadFormat()): T {.inline.} =
-    mixin read
-    result = default(T)
-    var reader = initHoloReader(doLineColumn = false) # XXX byte offset instead of line column
-    reader.startRead(s)
-    read(format, reader, result)
-    if reader.hasNext():
-      var msg = "extra character after reading grime: "
-      msg.addQuoted(reader.peekOrZero())
-      raise newException(GrimeReadError, msg)

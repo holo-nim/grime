@@ -3,10 +3,9 @@ import grime
 type
   Foo {.inheritable.} = object
     a: string
-    case b: uint8 #range[0..5] # https://github.com/nim-lang/Nim/pull/25585
+    case b: uint8
     of 0..2:
       c: int
-      #when true: # nim limitation
       d: bool
     else:
       e: float
@@ -180,7 +179,25 @@ proc cycleTest() =
   let des2 = fromDictGrime(ser2, Cycle1)
   doAssert des2.bar.foo == des2
 
-#static: cycleTest()
-if not defined(js):
+  type
+    TripleCycle1 = ref object
+      a: TripleCycle2
+    TripleCycle2 = ref object
+      b: TripleCycle3
+    TripleCycle3 = ref object
+      c: TripleCycle1
+  var x3 = TripleCycle1()
+  x3.a = TripleCycle2()
+  x3.a.b = TripleCycle3()
+  x3.a.b.c = x3
+
+  let ser3 = toDictGrime(x3)
+  let des3 = fromDictGrime(ser3, TripleCycle1)
+  doAssert des3.a.b.c == des3
+
+static:
+  if false:
+    cycleTest()
+if not (defined(nimscript) or (defined(js) and not grimeTrackJsDictReferences)):
   cycleTest()
 

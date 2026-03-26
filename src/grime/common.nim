@@ -11,7 +11,16 @@ type
     skip*: bool
       ## skip current value
 
+const grimeTrackJsDictReferences* {.booldefine.} = true
+  ## uses a global map to get the reference identities of reference objects in JS to use in dicts
+
 type
+  AnyPointer* = (
+    when defined(js):
+      JsRoot
+    else:
+      pointer
+  )
   DictionaryIdImpl* = int
   DictionaryId* = distinct DictionaryIdImpl
   ReferenceIdentity* = distinct uint
@@ -23,7 +32,7 @@ type
     data*: HoloWriter
   GrimeReader* = object
     dict*: Dictionary
-    dictPointers*: OrderedTable[DictionaryId, pointer]
+    dictPointers*: OrderedTable[DictionaryId, AnyPointer]
     data*: HoloReader
 
 proc `==`*(a, b: DictionaryId): bool {.borrow.}

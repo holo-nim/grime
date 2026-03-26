@@ -366,7 +366,7 @@ proc read*(format: static GrimeReadFormat, reader: var GrimeReader, v: var float
 template byteCount*[T: SomeNumber | enum | bool | char | set](format: static GrimeFormat, x: T): int = sizeof(T)
 
 proc dump*(format: static GrimeDumpFormat, dumper: var GrimeDumper, v: string) =
-  # force 4 bytes? use some weird utf8-like dynamic bytes for the length?
+  # XXX force 4 bytes? use some weird utf8-like dynamic bytes for the length?
   dump(format, dumper, v.len)
   # ignores endian
   dumper.data.write v
@@ -457,7 +457,7 @@ proc byteCount*[I, T](format: static GrimeFormat, x: array[I, T]): int =
 
 proc dump*[T](format: static GrimeDumpFormat, dumper: var GrimeDumper, v: seq[T]) =
   mixin dump
-  # force 4 bytes? use some weird utf8-like dynamic bytes for the length?
+  # XXX force 4 bytes? use some weird utf8-like dynamic bytes for the length?
   dump(format, dumper, v.len)
   for e in v:
     format.dump(dumper, e)
@@ -488,7 +488,9 @@ proc dump*[T: ref | ptr](format: static GrimeDumpFormat, dumper: var GrimeDumper
   ## 
   ## warning: no reference semantics on flat mode means this is prone to infinite recursion if there is a cycle
   ## 
-  ## also warning: VM does not have a way to get reference identity and JS is not implemented, so dict mode cannot deal with cycles in those yet either
+  ## also warning: VM does not have a way to get reference identity,
+  ## and JS needs a global map to track it which can be disabled with `-d:grimeTrackJsDictReferences=false`,
+  ## so dict mode cannot deal with cycles in those either
   mixin dump
   when format.shared.dict:
     dumpPointer(format, dumper, v)

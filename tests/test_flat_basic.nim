@@ -3,10 +3,9 @@ import grime
 type
   Foo {.inheritable.} = object
     a: string
-    case b: uint8 #range[0..5] # https://github.com/nim-lang/Nim/pull/25585
+    case b: uint8
     of 0..2:
       c: int
-      #when true: # nim limitation
       d: bool
     else:
       e: float

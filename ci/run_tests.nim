@@ -13,5 +13,8 @@ runTests(
 )
 runTests(
   backends = {js},
-  optionCombos = @["-d:grimeJsFloatUseDataView=false"]
+  optionCombos = @[
+    "-d:grimeJsFloatUseDataView=false",
+    "-d:grimeTrackJsDictReferences=false"
+  ]
 )
