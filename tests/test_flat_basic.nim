@@ -1,0 +1,103 @@
+import grime
+
+type
+  Foo {.inheritable.} = object
+    a: string
+    case b: uint8 #range[0..5] # https://github.com/nim-lang/Nim/pull/25585
+    of 0..2:
+      c: int
+      #when true: # nim limitation
+      d: bool
+    else:
+      e: float
+
+  Bar = ref object of Foo
+    f: int
+
+  Obj = object
+    field1: string
+    field2: Foo
+    field3: Bar
+    field4: seq[Obj]
+
+proc `$`(b: Bar): string =
+  if b.isNil: "nil" else: $b[]
+
+proc `==`(a, b: Foo): bool {.noSideEffect.} =
+  if a.a != b.a: return false
+  if a.b != b.b: return false
+  case a.b
+  of 0..2:
+    if a.c != b.c: return false
+    if a.d != b.d: return false
+  else:
+    if a.e != b.e: return false
+  result = true
+
+proc `==`(a, b: typeof(Bar()[])): bool {.noSideEffect.} =
+  if a.a != b.a: return false
+  if a.b != b.b: return false
+  case a.b
+  of 0..2:
+    if a.c != b.c: return false
+    if a.d != b.d: return false
+  else:
+    if a.e != b.e: return false
+  if a.f != b.f: return false
+  result = true
+
+proc `==`(a, b: Bar): bool {.noSideEffect.} =
+  system.`==`(a, b) or (not a.isNil and not b.isNil and a[] == b[])
+
+proc `==`(a, b: Obj): bool {.noSideEffect.} =
+  if a.field1 != b.field1: return false
+  if a.field2 != b.field2: return false
+  if a.field3 != b.field3: return false
+  if a.field4 != b.field4: return false
+  result = true
+
+proc test() =
+  let obj = Obj(
+    field1: "field 1",
+    field2: Foo(a: "abc", b: 1, c: 123, d: false),
+    field3: Bar(a: "def", b: 2, c: 456, d: true, f: 1000),
+    field4: @[
+      Obj(
+        field1: "nested 1",
+        field2: Foo(a: "ghi", b: 3, e: 1.23),
+        field3: Bar(a: "jkl", b: 4, e: 4.56, f: 2000),
+        field4: @[]
+      ),
+      Obj(
+        field1: "nested 2",
+        field2: Foo(a: "mno", b: 100, e: 7.89),
+        field3: nil,
+        field4: @[
+          Obj(
+            field1: "nested 3",
+            field2: Foo(a: "pqr", b: 255, e: NegInf),
+            field3: Bar(a: "stu", b: 0, c: 789, d: true, f: 3000)
+          )
+        ]
+      )
+    ]
+  )
+
+  when false: echo "serializing:"
+  let ser = toGrime(obj)
+  when false:
+    import std/strutils
+    for c in ser:
+      if c in {'\0'..'\32', '\127'..'\255'}:
+        stdout.write toHex(byte(c))
+      else:
+        stdout.write c
+      stdout.write ' '
+    stdout.writeLine("")
+  when false: echo "deserializing:"
+  let des = fromGrime(ser, Obj)
+  doAssert obj == des, $des
+  when false: echo $des
+
+static: test()
+test()
