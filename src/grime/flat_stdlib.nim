@@ -1,8 +1,8 @@
 ## `dump` hooks for stdlib types
 
-import ./[common, flat_basic], holo_flow/[holo_reader, holo_writer], std/[options, sets, tables, json]
+import ./[common, flat_basic], std/[options, sets, tables, json]
 
-proc dump*(format: static GrimeDumpFormat, writer: var HoloWriter, v: JsonNode) =
+proc dump*(format: static GrimeDumpFormat, writer: var GrimeDumper, v: JsonNode) =
   if v == nil:
     # consider same as null i guess
     writer.writeByte byte(JNull)
@@ -29,7 +29,7 @@ proc dump*(format: static GrimeDumpFormat, writer: var HoloWriter, v: JsonNode) 
     of JBool:
       format.dump(writer, v.bval)
 
-proc read*(format: static GrimeReadFormat, reader: var HoloReader, v: var JsonNode) =
+proc read*(format: static GrimeReadFormat, reader: var GrimeReader, v: var JsonNode) =
   var kind: JsonNodeKind
   read(format, reader, kind)
   v = JsonNode(kind: kind)
@@ -61,7 +61,7 @@ proc read*(format: static GrimeReadFormat, reader: var HoloReader, v: var JsonNo
   of JBool:
     format.read(reader, v.bval)
 
-proc dump*[T](format: static GrimeDumpFormat, writer: var HoloWriter, v: Option[T]) =
+proc dump*[T](format: static GrimeDumpFormat, writer: var GrimeDumper, v: Option[T]) =
   mixin dump
   if v.isNone:
     writer.writeByte 0
@@ -69,7 +69,7 @@ proc dump*[T](format: static GrimeDumpFormat, writer: var HoloWriter, v: Option[
     writer.writeByte 1
     format.dump(writer, v.get())
 
-proc read*[T](format: static GrimeReadFormat, reader: var HoloReader, v: var Option[T]) =
+proc read*[T](format: static GrimeReadFormat, reader: var GrimeReader, v: var Option[T]) =
   mixin read
   var exists: bool
   read(format, reader, exists)
@@ -80,19 +80,19 @@ proc read*[T](format: static GrimeReadFormat, reader: var HoloReader, v: var Opt
   else:
     v = none(T)
 
-proc dump*[T](format: static GrimeDumpFormat, writer: var HoloWriter, v: HashSet[T]) =
+proc dump*[T](format: static GrimeDumpFormat, writer: var GrimeDumper, v: HashSet[T]) =
   mixin dump
   format.dump(writer, v.len)
   for e in v:
     format.dump(writer, e)
 
-proc dump*[T](format: static GrimeDumpFormat, writer: var HoloWriter, v: OrderedSet[T]) =
+proc dump*[T](format: static GrimeDumpFormat, writer: var GrimeDumper, v: OrderedSet[T]) =
   mixin dump
   format.dump(writer, v.len)
   for e in v:
     format.dump(writer, e)
 
-proc read*[T](format: static GrimeReadFormat, reader: var HoloReader, v: var HashSet[T]) =
+proc read*[T](format: static GrimeReadFormat, reader: var GrimeReader, v: var HashSet[T]) =
   mixin read
   var len: typeof(v.len)
   read(format, reader, len)
@@ -102,7 +102,7 @@ proc read*[T](format: static GrimeReadFormat, reader: var HoloReader, v: var Has
     read(format, reader, val)
     v.incl(val)
 
-proc read*[T](format: static GrimeReadFormat, reader: var HoloReader, v: var OrderedSet[T]) =
+proc read*[T](format: static GrimeReadFormat, reader: var GrimeReader, v: var OrderedSet[T]) =
   mixin read
   var len: typeof(v.len)
   read(format, reader, len)
@@ -124,16 +124,16 @@ template dumpTableImpl(format, writer, tab, K, V) =
     format.dump writer, k
     format.dump writer, v
 
-proc dump*[K, V](format: static GrimeDumpFormat, writer: var HoloWriter, tab: Table[K, V]) =
+proc dump*[K, V](format: static GrimeDumpFormat, writer: var GrimeDumper, tab: Table[K, V]) =
   dumpTableImpl(format, writer, tab, K, V)
 
-proc dump*[K, V](format: static GrimeDumpFormat, writer: var HoloWriter, tab: OrderedTable[K, V]) =
+proc dump*[K, V](format: static GrimeDumpFormat, writer: var GrimeDumper, tab: OrderedTable[K, V]) =
   dumpTableImpl(format, writer, tab, K, V)
 
-proc dump*[K](format: static GrimeDumpFormat, writer: var HoloWriter, tab: CountTable[K]) =
+proc dump*[K](format: static GrimeDumpFormat, writer: var GrimeDumper, tab: CountTable[K]) =
   dumpTableImpl(format, writer, tab, K, int)
 
-proc read*[K, V](format: static GrimeReadFormat, reader: var HoloReader, tab: var Table[K, V]) =
+proc read*[K, V](format: static GrimeReadFormat, reader: var GrimeReader, tab: var Table[K, V]) =
   mixin read
   var len: typeof(tab.len)
   format.read(reader, len)
@@ -145,7 +145,7 @@ proc read*[K, V](format: static GrimeReadFormat, reader: var HoloReader, tab: va
     format.read reader, v
     tab[k] = v
 
-proc read*[K, V](format: static GrimeReadFormat, reader: var HoloReader, tab: var OrderedTable[K, V]) =
+proc read*[K, V](format: static GrimeReadFormat, reader: var GrimeReader, tab: var OrderedTable[K, V]) =
   mixin read
   var len: typeof(tab.len)
   format.read(reader, len)
@@ -157,7 +157,7 @@ proc read*[K, V](format: static GrimeReadFormat, reader: var HoloReader, tab: va
     format.read reader, v
     tab[k] = v
 
-proc read*[K](format: static GrimeReadFormat, reader: var HoloReader, tab: var CountTable[K]) =
+proc read*[K](format: static GrimeReadFormat, reader: var GrimeReader, tab: var CountTable[K]) =
   mixin read
   var len: typeof(tab.len)
   format.read(reader, len)

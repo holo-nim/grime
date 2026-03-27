@@ -1,4 +1,4 @@
-import ./common, holo_flow/[holo_reader, holo_writer], std/[tables, macros, macrocache]
+import ./common, holo_flow/[load_reader, flush_writer], std/[tables, macros, macrocache]
 
 type SizeImpl* = int
 
@@ -65,7 +65,7 @@ proc dumpPointer*[T](
       dumper.dictIds[p] = id
       # option to calculate this or write it out could go in format:
       let size = byteCount(format.shared, derefPointer(format, val))
-      var trailingDict = initHoloWriter()
+      var trailingDict = initFlushWriter()
       trailingDict.startWrite()
       swap dumper.dict, dumper.data
       swap trailingDict, dumper.dict
@@ -79,7 +79,7 @@ proc dumpPointer*[T](
 type GrimeMergeFormat* = object
   inner*: GrimeDumpFormat
 
-proc merge*(format: static GrimeMergeFormat, writer: var HoloWriter, dump: sink GrimeDumper) =
+proc merge*(format: static GrimeMergeFormat, writer: var FlushWriter, dump: sink GrimeDumper) =
   writer.write finishWrite(dump.dict)
   var dumper = GrimeDumper()
   swap dumper.data, writer
@@ -91,9 +91,9 @@ type GrimeSplitFormat* = object
   inner*: GrimeReadFormat
 
 when defined(js):
-  type SplitReader = var HoloReader
+  type SplitReader = var LoadReader
 else:
-  type SplitReader = sink HoloReader
+  type SplitReader = sink LoadReader
 
 proc split*(format: static GrimeSplitFormat, reader: SplitReader, merged: var GrimeReader) =
   mixin read
@@ -109,7 +109,7 @@ proc split*(format: static GrimeSplitFormat, reader: SplitReader, merged: var Gr
     if peek(reader, data):
       unsafeNextBy(reader, size)
       #echo "read entry ", merged.dict.data.len, " with size ", size, ": ", data.toOpenArrayByte(0, data.high)
-      var entry = initHoloReader()
+      var entry = initLoadReader()
       startRead(entry, move data)
       merged.dict.data.add entry
     else:

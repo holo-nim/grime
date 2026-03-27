@@ -1,6 +1,6 @@
 ## implements dumping behavior for basic types 
 
-import ./[common, dict], holo_flow/[holo_reader, holo_writer], std/typetraits
+import ./[common, dict], holo_flow/[load_reader, flush_writer], std/typetraits
 
 when not (defined(js) or defined(nimscript)):
   import std/endians
@@ -15,10 +15,10 @@ template jsOrVm(a, b): untyped =
     else:
       b
 
-proc writeByte*(writer: var HoloWriter, b: byte) {.inline.} =
+proc writeByte*(writer: var FlushWriter, b: byte) {.inline.} =
   writer.write char(b)
 
-proc writeBytes*(writer: var HoloWriter, bs: openArray[byte]) {.inline.} =
+proc writeBytes*(writer: var FlushWriter, bs: openArray[byte]) {.inline.} =
   when declared(toOpenArrayChar): # >= 2.2
     writer.write bs.toOpenArrayChar(0, bs.len - 1)
   else:
@@ -26,7 +26,7 @@ proc writeBytes*(writer: var HoloWriter, bs: openArray[byte]) {.inline.} =
       writer.addToBuffer(byte(b))
     writer.consumeBuffer()
 
-proc endError*(reader: var HoloReader, expected: string) {.inline.} =
+proc endError*(reader: var LoadReader, expected: string) {.inline.} =
   raise newException(GrimeReadError, "expected " & expected & " but end reached")
 
 template readByteInto[T](v: var T, expected: string) =
@@ -535,13 +535,13 @@ template byteCount*[T: distinct](format: static GrimeFormat, x: T): int =
 
 proc dump*[T](format: static GrimeDumpFormat, s: var string, v: T) {.inline.} =
   mixin dump
-  var dumper = GrimeDumper(dict: initHoloWriter(), data: initHoloWriter())
+  var dumper = GrimeDumper(dict: initFlushWriter(), data: initFlushWriter())
   when format.shared.dict:
     dumper.dict.startWrite()
   dumper.data.startWrite()
   dump(format, dumper, v)
   when format.shared.dict:
-    var writer = initHoloWriter()
+    var writer = initFlushWriter()
     writer.startWrite()
     merge(GrimeMergeFormat(inner: format), writer, dumper)
     s = writer.finishWrite()
@@ -571,14 +571,14 @@ proc read*[T](format: static GrimeReadFormat, reader: var GrimeReader, _: typede
 proc fromGrime*[T](s: string, x: typedesc[T], format: static GrimeReadFormat): T {.inline.} =
   mixin read
   result = default(T)
-  var reader = GrimeReader(data: initHoloReader())
+  var reader = GrimeReader(data: initLoadReader())
   when format.shared.dict:
-    var data = initHoloReader(doLineColumn = false) # XXX byte offset instead of line column
+    var data = initLoadReader(doLineColumn = false) # XXX byte offset instead of line column
     data.startRead(s)
     split(GrimeSplitFormat(inner: format), data, reader)
     read(format, reader, result)
   else:
-    reader.data = initHoloReader(doLineColumn = false) # XXX byte offset instead of line column
+    reader.data = initLoadReader(doLineColumn = false) # XXX byte offset instead of line column
     reader.data.startRead(s)
     read(format, reader, result)
   if reader.data.hasNext():

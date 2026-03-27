@@ -1,4 +1,4 @@
-import holo_flow/[holo_reader, holo_writer], std/[tables, hashes]
+import holo_flow/[load_reader, flush_writer], std/[tables, hashes]
 
 type
   GrimeFormat* = object
@@ -25,15 +25,15 @@ type
   DictionaryId* = distinct DictionaryIdImpl
   ReferenceIdentity* = distinct uint
   Dictionary* = object
-    data*: seq[HoloReader] # DictionaryId are indexes + 1, since 0 is nil
+    data*: seq[LoadReader] # DictionaryId are indexes + 1, since 0 is nil
   GrimeDumper* = object
-    dict*: HoloWriter
+    dict*: FlushWriter
     dictIds*: OrderedTable[ReferenceIdentity, DictionaryId]
-    data*: HoloWriter
+    data*: FlushWriter
   GrimeReader* = object
     dict*: Dictionary
     dictPointers*: OrderedTable[DictionaryId, AnyPointer]
-    data*: HoloReader
+    data*: LoadReader
 
 proc `==`*(a, b: DictionaryId): bool {.borrow.}
 proc hash*(a: DictionaryId): Hash {.borrow.}
