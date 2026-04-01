@@ -394,7 +394,7 @@ proc read*(format: static GrimeReadFormat, reader: var GrimeReader, v: var char)
 
 proc dump*[T: tuple | object](format: static GrimeDumpFormat, dumper: var GrimeDumper, v: T) =
   mixin dump
-  # XXX depends on `fields` iterator order https://github.com/holo-nim/holo-map/issues/11
+  # XXX depends on `fields` iterator order https://github.com/holo-nim/cosm/issues/11
   for e in v.fields:
     format.dump(dumper, e)
 

@@ -53,6 +53,6 @@ type
   GrimeDictError* = object of GrimeError
     ## error for a value that could not be found in the dictionary
 
-when (compiles do: import holo_map/groups):
-  import holo_map/groups
+when (compiles do: import cosm/groups):
+  import cosm/groups
   const Grime* = MappingGroup(id: "grime", parents: @[Binary])
