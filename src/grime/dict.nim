@@ -1,4 +1,4 @@
-import ./common, holo_flow/[load_reader, flush_writer], std/[tables, macros, macrocache]
+import ./common, flue/[load_reader, flush_writer], std/[tables, macros, macrocache]
 
 type SizeImpl* = int
 
