@@ -1,6 +1,6 @@
 ## implements dumping behavior for basic types 
 
-import ./[common, dict], flue/[load_reader, flush_writer], std/typetraits
+import ./[common, dict], fleu/[load_reader, flush_writer], std/typetraits
 
 when not (defined(js) or defined(nimscript)):
   import std/endians

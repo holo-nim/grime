@@ -1,4 +1,4 @@
-import flue/[load_reader, flush_writer], std/[tables, hashes]
+import fleu/[load_reader, flush_writer], std/[tables, hashes]
 
 type
   GrimeFormat* = object
