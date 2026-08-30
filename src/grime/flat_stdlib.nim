@@ -113,14 +113,14 @@ proc read*[T](format: static GrimeReadFormat, reader: var GrimeReader, v: var Or
     v.incl(val)
 
 template dumpTableImpl(format, writer, tab, K, V) =
-  mixin dump
+  mixin dump, pairs
   when tab is ref:
     if isNil(tab):
       # consider same as empty i guess
       format.dump(writer, 0)
       return
   format.dump(writer, tab.len)
-  for k, v in tab:
+  for k, v in tab.pairs:
     format.dump writer, k
     format.dump writer, v
 

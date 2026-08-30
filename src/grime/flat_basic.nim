@@ -308,7 +308,7 @@ proc read*(format: static GrimeReadFormat, reader: var GrimeReader, v: var float
 
 proc dump*(format: static GrimeDumpFormat, dumper: var GrimeDumper, v: float32) =
   when nimvm:
-    dump(format, dumper.data, cast[uint32](v))
+    dump(format, dumper, cast[uint32](v))
   else:
     when defined(js):
       var u: uint32
@@ -326,9 +326,9 @@ proc dump*(format: static GrimeDumpFormat, dumper: var GrimeDumper, v: float32) 
         floatView[0] = `v`;
         `u` = intView[0];
         """.}
-      dump(format, dumper.data, u)
+      dump(format, dumper, u)
     else:
-      dump(format, dumper.data, cast[uint32](v))
+      dump(format, dumper, cast[uint32](v))
 
 proc read*(format: static GrimeReadFormat, reader: var GrimeReader, v: var float32) {.inline.} =
   when nimvm:
@@ -479,7 +479,7 @@ proc byteCount*[T](format: static GrimeFormat, x: seq[T]): int =
 proc dump*[T](format: static GrimeDumpFormat, dumper: var GrimeDumper, v: set[T]) =
   dumpRawBytesImpl()
 
-proc read*[T](format: static GrimeReadFormat, reader: var GrimeReader, v: set[T]) =
+proc read*[T](format: static GrimeReadFormat, reader: var GrimeReader, v: var set[T]) =
   readRawBytesImpl("set of type " & $T)
 
 proc dump*[T: ref | ptr](format: static GrimeDumpFormat, dumper: var GrimeDumper, v: T) {.inline.} =
