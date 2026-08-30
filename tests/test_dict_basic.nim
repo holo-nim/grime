@@ -108,7 +108,7 @@ proc test() =
       stdout.write ' '
     stdout.writeLine("")
   when false: echo "deserializing:"
-  let des = fromDictGrime(ser, Obj)
+  let des = fromDictGrime(Obj, ser)
   doAssert obj == des, $des
   when false: echo $des
 
@@ -158,7 +158,7 @@ proc nestedTest() =
       stdout.write ' '
     stdout.writeLine("")
   when false: echo "deserializing:"
-  let des = fromDictGrime(ser, RefObj)
+  let des = fromDictGrime(RefObj, ser)
   doAssert obj == des, $des
   when false: echo $des
 
@@ -176,7 +176,7 @@ proc cycleTest() =
   x.bar.foo = x
 
   let ser2 = toDictGrime(x)
-  let des2 = fromDictGrime(ser2, Cycle1)
+  let des2 = fromDictGrime(Cycle1, ser2)
   doAssert des2.bar.foo == des2
 
   type
@@ -192,7 +192,7 @@ proc cycleTest() =
   x3.a.b.c = x3
 
   let ser3 = toDictGrime(x3)
-  let des3 = fromDictGrime(ser3, TripleCycle1)
+  let des3 = fromDictGrime(TripleCycle1, ser3)
   doAssert des3.a.b.c == des3
 
 static:

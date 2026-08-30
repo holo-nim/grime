@@ -95,7 +95,7 @@ proc test() =
       stdout.write ' '
     stdout.writeLine("")
   when false: echo "deserializing:"
-  let des = fromFlatGrime(ser, Obj)
+  let des = fromFlatGrime(Obj, ser)
   doAssert obj == des, $des
   when false: echo $des
 

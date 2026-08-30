@@ -568,17 +568,17 @@ proc read*[T](format: static GrimeReadFormat, reader: var GrimeReader, _: typede
   mixin read
   read(format, reader, result)
 
-proc fromGrime*[T](s: string, x: typedesc[T], format: static GrimeReadFormat): T {.inline.} =
+proc fromGrimeAs*[T](s: string, x: typedesc[T], format: static GrimeReadFormat): T {.inline.} =
   mixin read
   result = default(T)
   var reader = GrimeReader(data: initLoadReader())
   when format.shared.dict:
-    var data = initLoadReader(doLineColumn = false) # XXX byte offset instead of line column
+    var data = initLoadReader(#[doLineColumn = false]#) # XXX byte offset instead of line column
     data.startRead(s)
     split(GrimeSplitFormat(inner: format), data, reader)
     read(format, reader, result)
   else:
-    reader.data = initLoadReader(doLineColumn = false) # XXX byte offset instead of line column
+    reader.data = initLoadReader(#[doLineColumn = false]#) # XXX byte offset instead of line column
     reader.data.startRead(s)
     read(format, reader, result)
   if reader.data.hasNext():
@@ -586,8 +586,15 @@ proc fromGrime*[T](s: string, x: typedesc[T], format: static GrimeReadFormat): T
     msg.addQuoted(reader.data.peekOrZero())
     raise newException(GrimeReadError, msg)
 
-proc fromFlatGrime*[T](s: string, x: typedesc[T]): T {.inline.} =
-  fromGrime(s, T, GrimeReadFormat(shared: GrimeFormat(dict: false)))
+proc fromFlatGrimeAs*[T](s: string, x: typedesc[T]): T {.inline.} =
+  fromGrimeAs(s, T, GrimeReadFormat(shared: GrimeFormat(dict: false)))
 
-proc fromDictGrime*[T](s: string, x: typedesc[T]): T {.inline.} =
-  fromGrime(s, T, GrimeReadFormat(shared: GrimeFormat(dict: true)))
+proc fromDictGrimeAs*[T](s: string, x: typedesc[T]): T {.inline.} =
+  fromGrimeAs(s, T, GrimeReadFormat(shared: GrimeFormat(dict: true)))
+
+proc fromGrime*[T](x: typedesc[T], s: string, format: static GrimeReadFormat): T {.inline.} =
+  fromGrimeAs(s, T, format)
+proc fromFlatGrime*[T](x: typedesc[T], s: string): T {.inline.} =
+  fromFlatGrimeAs(s, T)
+proc fromDictGrime*[T](x: typedesc[T], s: string): T {.inline.} =
+  fromDictGrimeAs(s, T)
