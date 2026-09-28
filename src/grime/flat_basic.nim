@@ -26,7 +26,7 @@ proc writeBytes*(writer: var FlushWriter, bs: openArray[byte]) {.inline.} =
       writer.addToBuffer(byte(b))
     writer.consumeBuffer()
 
-proc endError*(reader: var LoadReader, expected: string) {.inline.} =
+proc endError*(reader: var GrimeReader, expected: string) {.inline.} =
   raise newException(GrimeReadError, "expected " & expected & " but end reached")
 
 template readByteInto[T](v: var T, expected: string) =
@@ -34,20 +34,20 @@ template readByteInto[T](v: var T, expected: string) =
     if hasNext(reader.data):
       reader.data.unsafeNext()
     else:
-      reader.data.endError(expected)
+      reader.endError(expected)
   else:
     jsOrVm:
       var c: char
       if peek(reader.data, c):
         reader.data.unsafeNext()
       else:
-        reader.data.endError(expected)
+        reader.endError(expected)
       v = T(c)
     do:
       if peek(reader.data, cast[ptr char](addr v)[]):
         reader.data.unsafeNext()
       else:
-        reader.data.endError(expected)
+        reader.endError(expected)
 
 when false:
   proc readBytesInto(reader: var HoloReader, bs: var openArray[byte], expected: string) {.inline.} =
@@ -109,28 +109,28 @@ template readRawBytesImpl(expected: string) =
       if reader.data.hasNext():
         reader.data.unsafeNext()
       else:
-        reader.data.endError(expected)
+        reader.endError(expected)
     else:
       if reader.data.hasNext(offset = sizeof(v) - 1):
         reader.data.unsafeNextBy(sizeof(v))
       else:
-        reader.data.endError(expected)
+        reader.endError(expected)
   elif sizeof(v) == 1:
     if reader.data.peek(cast[ptr char](unsafeAddr v)[]):
       reader.data.unsafeNext()
     else:
-      reader.data.endError(expected)
+      reader.endError(expected)
   elif format.shared.endian == cpuEndian:
     if reader.data.peek(cast[ptr array[sizeof(v), char]](unsafeAddr v)[]):
       reader.data.unsafeNextBy(sizeof(v))
     else:
-      reader.data.endError(expected)
+      reader.endError(expected)
   else:
     var bytes: array[sizeof(v), char]
     if reader.data.peek(bytes):
       reader.data.unsafeNextBy(sizeof(v))
     else:
-      reader.data.endError(expected)
+      reader.endError(expected)
     when sizeof(v) == 8:
       swapEndian64(unsafeAddr v, addr bytes)
     elif sizeof(v) == 4:
@@ -165,7 +165,7 @@ template readUintImpl() =
     if reader.data.peek(bytes):
       reader.data.unsafeNextBy(sizeof(v))
     else:
-      reader.data.endError($typeof(v))
+      reader.endError($typeof(v))
     v = 0
     for i in 0 ..< sizeof(v):
       # abysmal code style:
@@ -378,7 +378,7 @@ proc read*(format: static GrimeReadFormat, reader: var GrimeReader, v: var strin
   if reader.data.peek(v):
     reader.data.unsafeNextBy(len)
   else:
-    reader.data.endError("string of len " & $len)
+    reader.endError("string of len " & $len)
 
 proc byteCount*(format: static GrimeFormat, x: string): int {.inline.} =
   byteCount(format, x.len) + x.len
@@ -390,7 +390,7 @@ proc read*(format: static GrimeReadFormat, reader: var GrimeReader, v: var char)
   if reader.data.peek(v):
     reader.data.unsafeNext()
   else:
-    reader.data.endError("char")
+    reader.endError("char")
 
 proc dump*[T: enum](format: static GrimeDumpFormat, dumper: var GrimeDumper, v: T) {.inline.} =
   when sizeof(v) == 8:
