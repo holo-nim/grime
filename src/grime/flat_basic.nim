@@ -392,28 +392,6 @@ proc read*(format: static GrimeReadFormat, reader: var GrimeReader, v: var char)
   else:
     reader.data.endError("char")
 
-proc dump*[T: tuple | object](format: static GrimeDumpFormat, dumper: var GrimeDumper, v: T) =
-  mixin dump
-  # XXX depends on `fields` iterator order https://github.com/holo-nim/cosm/issues/11
-  for e in v.fields:
-    format.dump(dumper, e)
-
-proc read*[T: tuple | object](format: static GrimeReadFormat, reader: var GrimeReader, v: var T) =
-  mixin read
-  for e in v.fields:
-    when T is object:
-      {.cast(uncheckedAssign).}:
-        read(format, reader, e)
-    else:
-      read(format, reader, e)
-
-proc byteCount*[T: tuple | object](format: static GrimeFormat, x: T): int =
-  result = 0
-  for e in x.fields:
-    # for objects this branches for variants,
-    # so we cannot use `len * byteCount` in collections
-    result += byteCount(format, e)
-
 proc dump*[T: enum](format: static GrimeDumpFormat, dumper: var GrimeDumper, v: T) {.inline.} =
   when sizeof(v) == 8:
     dumpIntImpl(uint64)
@@ -437,6 +415,49 @@ proc read*[T: enum](format: static GrimeReadFormat, reader: var GrimeReader, v: 
     readIntImpl(uint8)
   else:
     {.error: "unexpected size for enum " & $T & ": " & $sizeof(T).}
+
+proc dump*[T: tuple | object](format: static GrimeDumpFormat, dumper: var GrimeDumper, v: T) {.gcsafe.}
+proc read*[T: tuple | object](format: static GrimeReadFormat, reader: var GrimeReader, v: var T) {.gcsafe.}
+proc byteCount*[T: tuple | object](format: static GrimeFormat, x: T): int {.gcsafe.}
+proc dump*[N, T](format: static GrimeDumpFormat, dumper: var GrimeDumper, v: array[N, T]) {.gcsafe.}
+proc read*[N, T](format: static GrimeReadFormat, reader: var GrimeReader, v: var array[N, T]) {.gcsafe.}
+proc byteCount*[I, T](format: static GrimeFormat, x: array[I, T]): int {.gcsafe.}
+proc dump*[T](format: static GrimeDumpFormat, dumper: var GrimeDumper, v: seq[T]) {.gcsafe.}
+proc read*[T](format: static GrimeReadFormat, reader: var GrimeReader, v: var seq[T]) {.gcsafe.}
+proc byteCount*[T](format: static GrimeFormat, x: seq[T]): int {.gcsafe.}
+proc dump*[T](format: static GrimeDumpFormat, dumper: var GrimeDumper, v: set[T]) {.gcsafe.}
+proc read*[T](format: static GrimeReadFormat, reader: var GrimeReader, v: var set[T]) {.gcsafe.}
+proc dump*[T: ref | ptr](format: static GrimeDumpFormat, dumper: var GrimeDumper, v: T) {.inline, gcsafe.}
+proc read*[T: ref | ptr](format: static GrimeReadFormat, reader: var GrimeReader, v: var T) {.gcsafe.}
+proc byteCount*[T: ref | ptr](format: static GrimeFormat, x: T): int {.gcsafe.}
+proc dump*[T: distinct](format: static GrimeDumpFormat, dumper: var GrimeDumper, v: T) {.inline, gcsafe.}
+proc read*[T: distinct](format: static GrimeReadFormat, reader: var GrimeReader, v: var T) {.inline, gcsafe.}
+
+template byteCount*[T: distinct](format: static GrimeFormat, x: T): int =
+  mixin byteCount
+  byteCount(format, distinctBase(T)(x))
+
+proc dump*[T: tuple | object](format: static GrimeDumpFormat, dumper: var GrimeDumper, v: T) =
+  mixin dump
+  # XXX depends on `fields` iterator order https://github.com/holo-nim/cosm/issues/11
+  for e in v.fields:
+    format.dump(dumper, e)
+
+proc read*[T: tuple | object](format: static GrimeReadFormat, reader: var GrimeReader, v: var T) =
+  mixin read
+  for e in v.fields:
+    when T is object:
+      {.cast(uncheckedAssign).}:
+        read(format, reader, e)
+    else:
+      read(format, reader, e)
+
+proc byteCount*[T: tuple | object](format: static GrimeFormat, x: T): int =
+  result = 0
+  for e in x.fields:
+    # for objects this branches for variants,
+    # so we cannot use `len * byteCount` in collections
+    result += byteCount(format, e)
 
 proc dump*[N, T](format: static GrimeDumpFormat, dumper: var GrimeDumper, v: array[N, T]) =
   mixin dump
@@ -530,8 +551,9 @@ proc read*[T: distinct](format: static GrimeReadFormat, reader: var GrimeReader,
   mixin read
   format.read(reader, distinctBase(T)(v))
 
-template byteCount*[T: distinct](format: static GrimeFormat, x: T): int =
-  byteCount(format, distinctBase(T)(x))
+# declared above:
+#template byteCount*[T: distinct](format: static GrimeFormat, x: T): int =
+#  byteCount(format, distinctBase(T)(x))
 
 proc dump*[T](format: static GrimeDumpFormat, s: var string, v: T) {.inline.} =
   mixin dump
