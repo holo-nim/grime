@@ -2,7 +2,7 @@ import ./common, fleu/[load_reader, flush_writer], std/[tables, macros, macrocac
 
 type SizeImpl* = int
 
-template dictByteCount*[T: ref | ptr](format: static GrimeFormat, x: T): int =
+template dictByteCount*[T: ref | ptr](format: static GrimeShared, x: T): int =
   sizeof(DictionaryIdImpl)
 
 when defined(js) and grimeTrackJsDictReferences:
@@ -12,7 +12,7 @@ when defined(js) and grimeTrackJsDictReferences:
   `grimeReferenceMap` = new WeakMap();
   """.}
 
-proc getReferenceIdentity*[T: ref | ptr](format: static GrimeDumpFormat, dumper: var GrimeDumper, x: T): ReferenceIdentity {.inline.} =
+proc getReferenceIdentity*[T: ref | ptr](format: static GrimeDump, dumper: var GrimeDumper, x: T): ReferenceIdentity {.inline.} =
   when nimvm:
     when false: # does not work
       var tracked {.global.}: seq[(T, int)] = @[]
@@ -42,11 +42,11 @@ proc getReferenceIdentity*[T: ref | ptr](format: static GrimeDumpFormat, dumper:
     else:
       result = cast[ReferenceIdentity](cast[pointer](x))
 
-template derefPointer*[T: ref | ptr](format: static GrimeDumpFormat, x: T): untyped =
+template derefPointer*[T: ref | ptr](format: static GrimeDump, x: T): untyped =
   x[]
 
 proc dumpPointer*[T](
-    format: static GrimeDumpFormat,
+    format: static GrimeDump,
     dumper: var GrimeDumper,
     val: T) =
   mixin dump, derefPointer, byteCount
@@ -76,10 +76,10 @@ proc dumpPointer*[T](
       dumper.dict.write finishWrite(trailingDict)
       dump(format, dumper, id)
 
-type GrimeMergeFormat* = object
-  inner*: GrimeDumpFormat
+type GrimeMerge* = object
+  inner*: GrimeDump
 
-proc merge*(format: static GrimeMergeFormat, writer: var FlushWriter, dump: sink GrimeDumper) =
+proc merge*(format: static GrimeMerge, writer: var FlushWriter, dump: sink GrimeDumper) =
   writer.write finishWrite(dump.dict)
   var dumper = GrimeDumper()
   swap dumper.data, writer
@@ -87,15 +87,15 @@ proc merge*(format: static GrimeMergeFormat, writer: var FlushWriter, dump: sink
   swap dumper.data, writer
   writer.write finishWrite(dump.data)
 
-type GrimeSplitFormat* = object
-  inner*: GrimeReadFormat
+type GrimeSplit* = object
+  inner*: GrimeRead
 
 when defined(js):
   type SplitReader = var LoadReader
 else:
   type SplitReader = sink LoadReader
 
-proc split*(format: static GrimeSplitFormat, reader: SplitReader, merged: var GrimeReader) =
+proc split*(format: static GrimeSplit, reader: SplitReader, merged: var GrimeReader) =
   mixin read
   while true:
     var size: SizeImpl
@@ -116,13 +116,13 @@ proc split*(format: static GrimeSplitFormat, reader: SplitReader, merged: var Gr
       raise newException(GrimeDictError, "expected " & $size & " bytes for dict entry but reached end")
   merged.data = move reader
 
-template allocPointer*[T: ref](format: static GrimeReadFormat, x: var T) =
+template allocPointer*[T: ref](format: static GrimeRead, x: var T) =
   new(x)
-template allocPointer*[T: ptr](format: static GrimeReadFormat, x: var T) =
+template allocPointer*[T: ptr](format: static GrimeRead, x: var T) =
   x = create(T)
 
 proc readPointer*[T](
-    format: static GrimeReadFormat,
+    format: static GrimeRead,
     reader: var GrimeReader,
     val: var T) =
   mixin read, allocPointer

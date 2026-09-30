@@ -1,13 +1,13 @@
 import fleu/[load_reader, flush_writer], std/[tables, hashes]
 
 type
-  GrimeFormat* = object
+  GrimeShared* = object
     endian*: Endianness = cpuEndian
     dict*: bool
-  GrimeDumpFormat* = object
-    shared*: GrimeFormat
-  GrimeReadFormat* = object
-    shared*: GrimeFormat
+  GrimeDump* = object
+    shared*: GrimeShared
+  GrimeRead* = object
+    shared*: GrimeShared
     skip*: bool
       ## skip current value
 
@@ -41,7 +41,7 @@ proc `==`*(a, b: ReferenceIdentity): bool {.borrow.}
 proc hash*(a: ReferenceIdentity): Hash {.borrow.}
 
 type
-  SomeGrimeFormat* = GrimeReadFormat | GrimeDumpFormat
+  SomeGrimeFormat* = GrimeRead | GrimeDump
 
 type
   GrimeError* = object of ValueError

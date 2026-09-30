@@ -72,16 +72,16 @@ when false:
 
 # all the read implementations depend on the dump implementation
 
-proc dump*(format: static GrimeDumpFormat, dumper: var GrimeDumper, v: byte) {.inline.} =
+proc dump*(format: static GrimeDump, dumper: var GrimeDumper, v: byte) {.inline.} =
   dumper.data.writeByte v
 
-proc read*(format: static GrimeReadFormat, reader: var GrimeReader, v: var byte) {.inline.} =
+proc read*(format: static GrimeRead, reader: var GrimeReader, v: var byte) {.inline.} =
   readByteInto(v, "byte")
 
-proc dump*(format: static GrimeDumpFormat, dumper: var GrimeDumper, v: bool) {.inline.} =
+proc dump*(format: static GrimeDump, dumper: var GrimeDumper, v: bool) {.inline.} =
   dumper.data.writeByte byte(v)
 
-proc read*(format: static GrimeReadFormat, reader: var GrimeReader, v: var bool) {.inline.} =
+proc read*(format: static GrimeRead, reader: var GrimeReader, v: var bool) {.inline.} =
   readByteInto(v, "bool")
 
 template dumpRawBytesImpl() =
@@ -178,30 +178,30 @@ template readUintImpl() =
   do:
     readRawBytesImpl($typeof(v))
 
-proc dump*(format: static GrimeDumpFormat, dumper: var GrimeDumper, v: uint) {.inline.} =
+proc dump*(format: static GrimeDump, dumper: var GrimeDumper, v: uint) {.inline.} =
   dumpUintImpl()
 
-proc read*(format: static GrimeReadFormat, reader: var GrimeReader, v: var uint) {.inline.} =
+proc read*(format: static GrimeRead, reader: var GrimeReader, v: var uint) {.inline.} =
   readUintImpl()
 
 # uint8 implemented at the start as byte
 
-proc dump*(format: static GrimeDumpFormat, dumper: var GrimeDumper, v: uint16) {.inline.} =
+proc dump*(format: static GrimeDump, dumper: var GrimeDumper, v: uint16) {.inline.} =
   dumpUintImpl()
 
-proc read*(format: static GrimeReadFormat, reader: var GrimeReader, v: var uint16) {.inline.} =
+proc read*(format: static GrimeRead, reader: var GrimeReader, v: var uint16) {.inline.} =
   readUintImpl()
 
-proc dump*(format: static GrimeDumpFormat, dumper: var GrimeDumper, v: uint32) {.inline.} =
+proc dump*(format: static GrimeDump, dumper: var GrimeDumper, v: uint32) {.inline.} =
   dumpUintImpl()
 
-proc read*(format: static GrimeReadFormat, reader: var GrimeReader, v: var uint32) {.inline.} =
+proc read*(format: static GrimeRead, reader: var GrimeReader, v: var uint32) {.inline.} =
   readUintImpl()
 
-proc dump*(format: static GrimeDumpFormat, dumper: var GrimeDumper, v: uint64) {.inline.} =
+proc dump*(format: static GrimeDump, dumper: var GrimeDumper, v: uint64) {.inline.} =
   dumpUintImpl()
 
-proc read*(format: static GrimeReadFormat, reader: var GrimeReader, v: var uint64) {.inline.} =
+proc read*(format: static GrimeRead, reader: var GrimeReader, v: var uint64) {.inline.} =
   readUintImpl()
 
 # int/uint casts should work on js with --jsbigint64:on
@@ -215,41 +215,41 @@ template readIntImpl(uintType) =
   do:
     read(format, reader, cast[ptr uintType](unsafeAddr v)[])
 
-proc dump*(format: static GrimeDumpFormat, dumper: var GrimeDumper, v: int) {.inline.} =
+proc dump*(format: static GrimeDump, dumper: var GrimeDumper, v: int) {.inline.} =
   dumpIntImpl uint
 
-proc read*(format: static GrimeReadFormat, reader: var GrimeReader, v: var int) {.inline.} =
+proc read*(format: static GrimeRead, reader: var GrimeReader, v: var int) {.inline.} =
   readIntImpl uint
 
-proc dump*(format: static GrimeDumpFormat, dumper: var GrimeDumper, v: int8) {.inline.} =
+proc dump*(format: static GrimeDump, dumper: var GrimeDumper, v: int8) {.inline.} =
   dumper.data.writeByte cast[byte](v)
 
-proc read*(format: static GrimeReadFormat, reader: var GrimeReader, v: var int8) {.inline.} =
+proc read*(format: static GrimeRead, reader: var GrimeReader, v: var int8) {.inline.} =
   readIntImpl uint8
 
-proc dump*(format: static GrimeDumpFormat, dumper: var GrimeDumper, v: int16) {.inline.} =
+proc dump*(format: static GrimeDump, dumper: var GrimeDumper, v: int16) {.inline.} =
   dumpIntImpl uint16
 
-proc read*(format: static GrimeReadFormat, reader: var GrimeReader, v: var int16) {.inline.} =
+proc read*(format: static GrimeRead, reader: var GrimeReader, v: var int16) {.inline.} =
   readIntImpl uint16
 
-proc dump*(format: static GrimeDumpFormat, dumper: var GrimeDumper, v: int32) {.inline.} =
+proc dump*(format: static GrimeDump, dumper: var GrimeDumper, v: int32) {.inline.} =
   dumpIntImpl uint32
 
-proc read*(format: static GrimeReadFormat, reader: var GrimeReader, v: var int32) {.inline.} =
+proc read*(format: static GrimeRead, reader: var GrimeReader, v: var int32) {.inline.} =
   readIntImpl uint32
 
-proc dump*(format: static GrimeDumpFormat, dumper: var GrimeDumper, v: int64) {.inline.} =
+proc dump*(format: static GrimeDump, dumper: var GrimeDumper, v: int64) {.inline.} =
   dumpIntImpl uint64
 
-proc read*(format: static GrimeReadFormat, reader: var GrimeReader, v: var int64) {.inline.} =
+proc read*(format: static GrimeRead, reader: var GrimeReader, v: var int64) {.inline.} =
   readIntImpl uint64
 
 # on js, uint64 is a bigint with jsbigint64:on, but casting uint64 to/from float does not work for infinity/nan
 
 const grimeJsFloatUseDataView* {.booldefine.} = true
 
-proc dump*(format: static GrimeDumpFormat, dumper: var GrimeDumper, v: float) =
+proc dump*(format: static GrimeDump, dumper: var GrimeDumper, v: float) =
   when nimvm:
     dump(format, dumper, cast[uint64](v))
   else:
@@ -273,7 +273,7 @@ proc dump*(format: static GrimeDumpFormat, dumper: var GrimeDumper, v: float) =
     else:
       dump(format, dumper, cast[uint64](v))
 
-proc read*(format: static GrimeReadFormat, reader: var GrimeReader, v: var float) {.inline.} =
+proc read*(format: static GrimeRead, reader: var GrimeReader, v: var float) {.inline.} =
   when nimvm:
     block:
       var impl: uint64
@@ -306,7 +306,7 @@ proc read*(format: static GrimeReadFormat, reader: var GrimeReader, v: var float
     else:
       read(format, reader, cast[ptr uint64](unsafeAddr v)[])
 
-proc dump*(format: static GrimeDumpFormat, dumper: var GrimeDumper, v: float32) =
+proc dump*(format: static GrimeDump, dumper: var GrimeDumper, v: float32) =
   when nimvm:
     dump(format, dumper, cast[uint32](v))
   else:
@@ -330,7 +330,7 @@ proc dump*(format: static GrimeDumpFormat, dumper: var GrimeDumper, v: float32) 
     else:
       dump(format, dumper, cast[uint32](v))
 
-proc read*(format: static GrimeReadFormat, reader: var GrimeReader, v: var float32) {.inline.} =
+proc read*(format: static GrimeRead, reader: var GrimeReader, v: var float32) {.inline.} =
   when nimvm:
     block:
       var impl: uint32
@@ -363,15 +363,15 @@ proc read*(format: static GrimeReadFormat, reader: var GrimeReader, v: var float
     else:
       read(format, reader, cast[ptr uint32](unsafeAddr v)[])
 
-template byteCount*[T: SomeNumber | enum | bool | char | set](format: static GrimeFormat, x: T): int = sizeof(T)
+template byteCount*[T: SomeNumber | enum | bool | char | set](format: static GrimeShared, x: T): int = sizeof(T)
 
-proc dump*(format: static GrimeDumpFormat, dumper: var GrimeDumper, v: string) =
+proc dump*(format: static GrimeDump, dumper: var GrimeDumper, v: string) =
   # XXX force 4 bytes? use some weird utf8-like dynamic bytes for the length?
   dump(format, dumper, v.len)
   # ignores endian
   dumper.data.write v
 
-proc read*(format: static GrimeReadFormat, reader: var GrimeReader, v: var string) =
+proc read*(format: static GrimeRead, reader: var GrimeReader, v: var string) =
   var len: typeof(v.len)
   read(format, reader, len)
   v = newString(len)
@@ -380,19 +380,19 @@ proc read*(format: static GrimeReadFormat, reader: var GrimeReader, v: var strin
   else:
     reader.endError("string of len " & $len)
 
-proc byteCount*(format: static GrimeFormat, x: string): int {.inline.} =
+proc byteCount*(format: static GrimeShared, x: string): int {.inline.} =
   byteCount(format, x.len) + x.len
 
-proc dump*(format: static GrimeDumpFormat, dumper: var GrimeDumper, v: char) {.inline.} =
+proc dump*(format: static GrimeDump, dumper: var GrimeDumper, v: char) {.inline.} =
   dumper.data.write v
 
-proc read*(format: static GrimeReadFormat, reader: var GrimeReader, v: var char) =
+proc read*(format: static GrimeRead, reader: var GrimeReader, v: var char) =
   if reader.data.peek(v):
     reader.data.unsafeNext()
   else:
     reader.endError("char")
 
-proc dump*[T: enum](format: static GrimeDumpFormat, dumper: var GrimeDumper, v: T) {.inline.} =
+proc dump*[T: enum](format: static GrimeDump, dumper: var GrimeDumper, v: T) {.inline.} =
   when sizeof(v) == 8:
     dumpIntImpl(uint64)
   elif sizeof(v) == 4:
@@ -404,7 +404,7 @@ proc dump*[T: enum](format: static GrimeDumpFormat, dumper: var GrimeDumper, v: 
   else:
     {.error: "unexpected size for enum " & $T & ": " & $sizeof(T).}
 
-proc read*[T: enum](format: static GrimeReadFormat, reader: var GrimeReader, v: var T) =
+proc read*[T: enum](format: static GrimeRead, reader: var GrimeReader, v: var T) =
   when sizeof(v) == 8:
     readIntImpl(uint64)
   elif sizeof(v) == 4:
@@ -416,34 +416,34 @@ proc read*[T: enum](format: static GrimeReadFormat, reader: var GrimeReader, v: 
   else:
     {.error: "unexpected size for enum " & $T & ": " & $sizeof(T).}
 
-proc dump*[T: tuple | object](format: static GrimeDumpFormat, dumper: var GrimeDumper, v: T) {.gcsafe.}
-proc read*[T: tuple | object](format: static GrimeReadFormat, reader: var GrimeReader, v: var T) {.gcsafe.}
-proc byteCount*[T: tuple | object](format: static GrimeFormat, x: T): int {.gcsafe.}
-proc dump*[N, T](format: static GrimeDumpFormat, dumper: var GrimeDumper, v: array[N, T]) {.gcsafe.}
-proc read*[N, T](format: static GrimeReadFormat, reader: var GrimeReader, v: var array[N, T]) {.gcsafe.}
-proc byteCount*[I, T](format: static GrimeFormat, x: array[I, T]): int {.gcsafe.}
-proc dump*[T](format: static GrimeDumpFormat, dumper: var GrimeDumper, v: seq[T]) {.gcsafe.}
-proc read*[T](format: static GrimeReadFormat, reader: var GrimeReader, v: var seq[T]) {.gcsafe.}
-proc byteCount*[T](format: static GrimeFormat, x: seq[T]): int {.gcsafe.}
-proc dump*[T](format: static GrimeDumpFormat, dumper: var GrimeDumper, v: set[T]) {.gcsafe.}
-proc read*[T](format: static GrimeReadFormat, reader: var GrimeReader, v: var set[T]) {.gcsafe.}
-proc dump*[T: ref | ptr](format: static GrimeDumpFormat, dumper: var GrimeDumper, v: T) {.inline, gcsafe.}
-proc read*[T: ref | ptr](format: static GrimeReadFormat, reader: var GrimeReader, v: var T) {.gcsafe.}
-proc byteCount*[T: ref | ptr](format: static GrimeFormat, x: T): int {.gcsafe.}
-proc dump*[T: distinct](format: static GrimeDumpFormat, dumper: var GrimeDumper, v: T) {.inline, gcsafe.}
-proc read*[T: distinct](format: static GrimeReadFormat, reader: var GrimeReader, v: var T) {.inline, gcsafe.}
+proc dump*[T: tuple | object](format: static GrimeDump, dumper: var GrimeDumper, v: T) {.gcsafe.}
+proc read*[T: tuple | object](format: static GrimeRead, reader: var GrimeReader, v: var T) {.gcsafe.}
+proc byteCount*[T: tuple | object](format: static GrimeShared, x: T): int {.gcsafe.}
+proc dump*[N, T](format: static GrimeDump, dumper: var GrimeDumper, v: array[N, T]) {.gcsafe.}
+proc read*[N, T](format: static GrimeRead, reader: var GrimeReader, v: var array[N, T]) {.gcsafe.}
+proc byteCount*[I, T](format: static GrimeShared, x: array[I, T]): int {.gcsafe.}
+proc dump*[T](format: static GrimeDump, dumper: var GrimeDumper, v: seq[T]) {.gcsafe.}
+proc read*[T](format: static GrimeRead, reader: var GrimeReader, v: var seq[T]) {.gcsafe.}
+proc byteCount*[T](format: static GrimeShared, x: seq[T]): int {.gcsafe.}
+proc dump*[T](format: static GrimeDump, dumper: var GrimeDumper, v: set[T]) {.gcsafe.}
+proc read*[T](format: static GrimeRead, reader: var GrimeReader, v: var set[T]) {.gcsafe.}
+proc dump*[T: ref | ptr](format: static GrimeDump, dumper: var GrimeDumper, v: T) {.inline, gcsafe.}
+proc read*[T: ref | ptr](format: static GrimeRead, reader: var GrimeReader, v: var T) {.gcsafe.}
+proc byteCount*[T: ref | ptr](format: static GrimeShared, x: T): int {.gcsafe.}
+proc dump*[T: distinct](format: static GrimeDump, dumper: var GrimeDumper, v: T) {.inline, gcsafe.}
+proc read*[T: distinct](format: static GrimeRead, reader: var GrimeReader, v: var T) {.inline, gcsafe.}
 
-template byteCount*[T: distinct](format: static GrimeFormat, x: T): int =
+template byteCount*[T: distinct](format: static GrimeShared, x: T): int =
   mixin byteCount
   byteCount(format, distinctBase(T)(x))
 
-proc dump*[T: tuple | object](format: static GrimeDumpFormat, dumper: var GrimeDumper, v: T) =
+proc dump*[T: tuple | object](format: static GrimeDump, dumper: var GrimeDumper, v: T) =
   mixin dump
   # XXX depends on `fields` iterator order https://github.com/holo-nim/cosm/issues/11
   for e in v.fields:
     format.dump(dumper, e)
 
-proc read*[T: tuple | object](format: static GrimeReadFormat, reader: var GrimeReader, v: var T) =
+proc read*[T: tuple | object](format: static GrimeRead, reader: var GrimeReader, v: var T) =
   mixin read
   for e in v.fields:
     when T is object:
@@ -452,38 +452,38 @@ proc read*[T: tuple | object](format: static GrimeReadFormat, reader: var GrimeR
     else:
       read(format, reader, e)
 
-proc byteCount*[T: tuple | object](format: static GrimeFormat, x: T): int =
+proc byteCount*[T: tuple | object](format: static GrimeShared, x: T): int =
   result = 0
   for e in x.fields:
     # for objects this branches for variants,
     # so we cannot use `len * byteCount` in collections
     result += byteCount(format, e)
 
-proc dump*[N, T](format: static GrimeDumpFormat, dumper: var GrimeDumper, v: array[N, T]) =
+proc dump*[N, T](format: static GrimeDump, dumper: var GrimeDumper, v: array[N, T]) =
   mixin dump
   # does not write length
   # can only override with distinct type?
   for e in v:
     format.dump(dumper, e)
 
-proc read*[N, T](format: static GrimeReadFormat, reader: var GrimeReader, v: var array[N, T]) =
+proc read*[N, T](format: static GrimeRead, reader: var GrimeReader, v: var array[N, T]) =
   mixin read
   for e in v.mitems:
     format.read(reader, e)
 
-proc byteCount*[I, T](format: static GrimeFormat, x: array[I, T]): int =
+proc byteCount*[I, T](format: static GrimeShared, x: array[I, T]): int =
   result = 0
   for e in x.items:
     result += byteCount(format, e)
 
-proc dump*[T](format: static GrimeDumpFormat, dumper: var GrimeDumper, v: seq[T]) =
+proc dump*[T](format: static GrimeDump, dumper: var GrimeDumper, v: seq[T]) =
   mixin dump
   # XXX force 4 bytes? use some weird utf8-like dynamic bytes for the length?
   dump(format, dumper, v.len)
   for e in v:
     format.dump(dumper, e)
 
-proc read*[T](format: static GrimeReadFormat, reader: var GrimeReader, v: var seq[T]) =
+proc read*[T](format: static GrimeRead, reader: var GrimeReader, v: var seq[T]) =
   mixin read
   var len: typeof(v.len)
   read(format, reader, len)
@@ -491,19 +491,19 @@ proc read*[T](format: static GrimeReadFormat, reader: var GrimeReader, v: var se
   for e in v.mitems:
     format.read(reader, e)
 
-proc byteCount*[T](format: static GrimeFormat, x: seq[T]): int =
+proc byteCount*[T](format: static GrimeShared, x: seq[T]): int =
   result = 0
   for e in x.items:
     # compiler might optimize this if it doesnt branch
     result += byteCount(format, e)
 
-proc dump*[T](format: static GrimeDumpFormat, dumper: var GrimeDumper, v: set[T]) =
+proc dump*[T](format: static GrimeDump, dumper: var GrimeDumper, v: set[T]) =
   dumpRawBytesImpl()
 
-proc read*[T](format: static GrimeReadFormat, reader: var GrimeReader, v: var set[T]) =
+proc read*[T](format: static GrimeRead, reader: var GrimeReader, v: var set[T]) =
   readRawBytesImpl("set of type " & $T)
 
-proc dump*[T: ref | ptr](format: static GrimeDumpFormat, dumper: var GrimeDumper, v: T) {.inline.} =
+proc dump*[T: ref | ptr](format: static GrimeDump, dumper: var GrimeDumper, v: T) {.inline.} =
   ## on flat mode, handled as an "optional" type, first byte is 1 if exists and 0 if nil
   ## on dict mode, data is saved to the dictionary and the final value is the dictionary index
   ## 
@@ -522,7 +522,7 @@ proc dump*[T: ref | ptr](format: static GrimeDumpFormat, dumper: var GrimeDumper
       dumper.data.writeByte 1
       format.dump(dumper, v[])
 
-proc read*[T: ref | ptr](format: static GrimeReadFormat, reader: var GrimeReader, v: var T) =
+proc read*[T: ref | ptr](format: static GrimeRead, reader: var GrimeReader, v: var T) =
   mixin read
   when format.shared.dict:
     readPointer(format, reader, v)
@@ -535,7 +535,7 @@ proc read*[T: ref | ptr](format: static GrimeReadFormat, reader: var GrimeReader
     else:
       v = nil
 
-proc byteCount*[T: ref | ptr](format: static GrimeFormat, x: T): int =
+proc byteCount*[T: ref | ptr](format: static GrimeShared, x: T): int =
   when format.dict:
     result = dictByteCount(format, x)
   else:
@@ -543,19 +543,19 @@ proc byteCount*[T: ref | ptr](format: static GrimeFormat, x: T): int =
     if not x.isNil:
       result += byteCount(x[])
 
-proc dump*[T: distinct](format: static GrimeDumpFormat, dumper: var GrimeDumper, v: T) {.inline.} =
+proc dump*[T: distinct](format: static GrimeDump, dumper: var GrimeDumper, v: T) {.inline.} =
   mixin dump
   format.dump(dumper, distinctBase(T)(v))
 
-proc read*[T: distinct](format: static GrimeReadFormat, reader: var GrimeReader, v: var T) {.inline.} =
+proc read*[T: distinct](format: static GrimeRead, reader: var GrimeReader, v: var T) {.inline.} =
   mixin read
   format.read(reader, distinctBase(T)(v))
 
 # declared above:
-#template byteCount*[T: distinct](format: static GrimeFormat, x: T): int =
+#template byteCount*[T: distinct](format: static GrimeShared, x: T): int =
 #  byteCount(format, distinctBase(T)(x))
 
-proc dump*[T](format: static GrimeDumpFormat, s: var string, v: T) {.inline.} =
+proc dump*[T](format: static GrimeDump, s: var string, v: T) {.inline.} =
   mixin dump
   var dumper = GrimeDumper(dict: initFlushWriter(), data: initFlushWriter())
   when format.shared.dict:
@@ -565,39 +565,39 @@ proc dump*[T](format: static GrimeDumpFormat, s: var string, v: T) {.inline.} =
   when format.shared.dict:
     var writer = initFlushWriter()
     writer.startWrite()
-    merge(GrimeMergeFormat(inner: format), writer, dumper)
+    merge(GrimeMerge(inner: format), writer, dumper)
     s = writer.finishWrite()
   else:
     s = dumper.data.finishWrite()
 
 proc dumpFlatGrime*[T](s: var string, v: T) {.inline.} =
   mixin dump
-  dump(GrimeDumpFormat(shared: GrimeFormat(dict: false)), s, v)
+  dump(GrimeDump(shared: GrimeShared(dict: false)), s, v)
 
 proc dumpDictGrime*[T](s: var string, v: T) {.inline.} =
   mixin dump
-  dump(GrimeDumpFormat(shared: GrimeFormat(dict: true)), s, v)
+  dump(GrimeDump(shared: GrimeShared(dict: true)), s, v)
 
 proc toFlatGrime*[T](v: T): string {.inline.} =
   mixin dump
-  dump(GrimeDumpFormat(shared: GrimeFormat(dict: false)), result, v)
+  dump(GrimeDump(shared: GrimeShared(dict: false)), result, v)
 
 proc toDictGrime*[T](v: T): string {.inline.} =
   mixin dump
-  dump(GrimeDumpFormat(shared: GrimeFormat(dict: true)), result, v)
+  dump(GrimeDump(shared: GrimeShared(dict: true)), result, v)
 
-proc read*[T](format: static GrimeReadFormat, reader: var GrimeReader, _: typedesc[T]): T =
+proc read*[T](format: static GrimeRead, reader: var GrimeReader, _: typedesc[T]): T =
   mixin read
   read(format, reader, result)
 
-proc fromGrimeAs*[T](s: string, x: typedesc[T], format: static GrimeReadFormat): T {.inline.} =
+proc fromGrimeAs*[T](s: string, x: typedesc[T], format: static GrimeRead): T {.inline.} =
   mixin read
   result = default(T)
   var reader = GrimeReader(data: initLoadReader())
   when format.shared.dict:
     var data = initLoadReader(#[doLineColumn = false]#) # XXX byte offset instead of line column
     data.startRead(s)
-    split(GrimeSplitFormat(inner: format), data, reader)
+    split(GrimeSplit(inner: format), data, reader)
     read(format, reader, result)
   else:
     reader.data = initLoadReader(#[doLineColumn = false]#) # XXX byte offset instead of line column
@@ -609,12 +609,12 @@ proc fromGrimeAs*[T](s: string, x: typedesc[T], format: static GrimeReadFormat):
     raise newException(GrimeReadError, msg)
 
 proc fromFlatGrimeAs*[T](s: string, x: typedesc[T]): T {.inline.} =
-  fromGrimeAs(s, T, GrimeReadFormat(shared: GrimeFormat(dict: false)))
+  fromGrimeAs(s, T, GrimeRead(shared: GrimeShared(dict: false)))
 
 proc fromDictGrimeAs*[T](s: string, x: typedesc[T]): T {.inline.} =
-  fromGrimeAs(s, T, GrimeReadFormat(shared: GrimeFormat(dict: true)))
+  fromGrimeAs(s, T, GrimeRead(shared: GrimeShared(dict: true)))
 
-proc fromGrime*[T](x: typedesc[T], s: string, format: static GrimeReadFormat): T {.inline.} =
+proc fromGrime*[T](x: typedesc[T], s: string, format: static GrimeRead): T {.inline.} =
   fromGrimeAs(s, T, format)
 proc fromFlatGrime*[T](x: typedesc[T], s: string): T {.inline.} =
   fromFlatGrimeAs(s, T)
