@@ -53,6 +53,9 @@ type
   GrimeDictError* = object of GrimeError
     ## error for a value that could not be found in the dictionary
 
-when (compiles do: import cosm/groups):
-  import cosm/groups
-  const Grime* = MappingGroup(id: "grime", parents: @[Binary])
+when (compiles do: import cosm/common_groups):
+  import cosm/common_groups
+  type Grime* = object
+    ## cosm mapping group
+  template eachParent*(_: type Grime, toApply) =
+    toApply Binary
