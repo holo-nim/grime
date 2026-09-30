@@ -2,7 +2,7 @@ import ./common, fleu/[load_reader, flush_writer], std/[tables, macros, macrocac
 
 type SizeImpl* = int
 
-template dictByteCount*[T: ref | ptr](format: static GrimeShared, x: T): int =
+template dictByteCount*[T: ref | ptr](format: static GrimeCommon, x: T): int =
   sizeof(DictionaryIdImpl)
 
 when defined(js) and grimeTrackJsDictReferences:
@@ -64,7 +64,7 @@ proc dumpPointer*[T](
       let id = DictionaryId(dumper.dictIds.len + 1)
       dumper.dictIds[p] = id
       # option to calculate this or write it out could go in format:
-      let size = byteCount(format.shared, derefPointer(format, val))
+      let size = byteCount(format.common, derefPointer(format, val))
       var trailingDict = initFlushWriter()
       trailingDict.startWrite()
       swap dumper.dict, dumper.data

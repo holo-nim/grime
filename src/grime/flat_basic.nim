@@ -87,7 +87,7 @@ proc read*(format: static GrimeRead, reader: var GrimeReader, v: var bool) {.inl
 template dumpRawBytesImpl() =
   when sizeof(v) == 1:
     dumper.data.writeByte cast[byte](v)
-  elif format.shared.endian == cpuEndian:
+  elif format.common.endian == cpuEndian:
     dumper.data.writeBytes cast[ptr UncheckedArray[byte]](unsafeAddr v).toOpenArray(0, sizeof(v) - 1)
   else:
     var bytes: array[sizeof(v), byte]
@@ -120,7 +120,7 @@ template readRawBytesImpl(expected: string) =
       reader.data.unsafeNext()
     else:
       reader.endError(expected)
-  elif format.shared.endian == cpuEndian:
+  elif format.common.endian == cpuEndian:
     if reader.data.peek(cast[ptr array[sizeof(v), char]](unsafeAddr v)[]):
       reader.data.unsafeNextBy(sizeof(v))
     else:
@@ -149,7 +149,7 @@ template dumpUintImpl() =
     for i in 0 ..< sizeof(v):
       # abysmal code style:
       bytes[
-        when format.shared.endian == littleEndian:
+        when format.common.endian == littleEndian:
           i
         else:
           sizeof(v) - i - 1
@@ -170,7 +170,7 @@ template readUintImpl() =
     for i in 0 ..< sizeof(v):
       # abysmal code style:
       v = (v shl 8) or typeof(v)(bytes[
-        when format.shared.endian == littleEndian:
+        when format.common.endian == littleEndian:
           sizeof(v) - i - 1
         else:
           i
@@ -363,7 +363,7 @@ proc read*(format: static GrimeRead, reader: var GrimeReader, v: var float32) {.
     else:
       read(format, reader, cast[ptr uint32](unsafeAddr v)[])
 
-template byteCount*[T: SomeNumber | enum | bool | char | set](format: static GrimeShared, x: T): int = sizeof(T)
+template byteCount*[T: SomeNumber | enum | bool | char | set](format: static GrimeCommon, x: T): int = sizeof(T)
 
 proc dump*(format: static GrimeDump, dumper: var GrimeDumper, v: string) =
   # XXX force 4 bytes? use some weird utf8-like dynamic bytes for the length?
@@ -380,7 +380,7 @@ proc read*(format: static GrimeRead, reader: var GrimeReader, v: var string) =
   else:
     reader.endError("string of len " & $len)
 
-proc byteCount*(format: static GrimeShared, x: string): int {.inline.} =
+proc byteCount*(format: static GrimeCommon, x: string): int {.inline.} =
   byteCount(format, x.len) + x.len
 
 proc dump*(format: static GrimeDump, dumper: var GrimeDumper, v: char) {.inline.} =
@@ -418,22 +418,22 @@ proc read*[T: enum](format: static GrimeRead, reader: var GrimeReader, v: var T)
 
 proc dump*[T: tuple | object](format: static GrimeDump, dumper: var GrimeDumper, v: T) {.gcsafe.}
 proc read*[T: tuple | object](format: static GrimeRead, reader: var GrimeReader, v: var T) {.gcsafe.}
-proc byteCount*[T: tuple | object](format: static GrimeShared, x: T): int {.gcsafe.}
+proc byteCount*[T: tuple | object](format: static GrimeCommon, x: T): int {.gcsafe.}
 proc dump*[N, T](format: static GrimeDump, dumper: var GrimeDumper, v: array[N, T]) {.gcsafe.}
 proc read*[N, T](format: static GrimeRead, reader: var GrimeReader, v: var array[N, T]) {.gcsafe.}
-proc byteCount*[I, T](format: static GrimeShared, x: array[I, T]): int {.gcsafe.}
+proc byteCount*[I, T](format: static GrimeCommon, x: array[I, T]): int {.gcsafe.}
 proc dump*[T](format: static GrimeDump, dumper: var GrimeDumper, v: seq[T]) {.gcsafe.}
 proc read*[T](format: static GrimeRead, reader: var GrimeReader, v: var seq[T]) {.gcsafe.}
-proc byteCount*[T](format: static GrimeShared, x: seq[T]): int {.gcsafe.}
+proc byteCount*[T](format: static GrimeCommon, x: seq[T]): int {.gcsafe.}
 proc dump*[T](format: static GrimeDump, dumper: var GrimeDumper, v: set[T]) {.gcsafe.}
 proc read*[T](format: static GrimeRead, reader: var GrimeReader, v: var set[T]) {.gcsafe.}
 proc dump*[T: ref | ptr](format: static GrimeDump, dumper: var GrimeDumper, v: T) {.inline, gcsafe.}
 proc read*[T: ref | ptr](format: static GrimeRead, reader: var GrimeReader, v: var T) {.gcsafe.}
-proc byteCount*[T: ref | ptr](format: static GrimeShared, x: T): int {.gcsafe.}
+proc byteCount*[T: ref | ptr](format: static GrimeCommon, x: T): int {.gcsafe.}
 proc dump*[T: distinct](format: static GrimeDump, dumper: var GrimeDumper, v: T) {.inline, gcsafe.}
 proc read*[T: distinct](format: static GrimeRead, reader: var GrimeReader, v: var T) {.inline, gcsafe.}
 
-template byteCount*[T: distinct](format: static GrimeShared, x: T): int =
+template byteCount*[T: distinct](format: static GrimeCommon, x: T): int =
   mixin byteCount
   byteCount(format, distinctBase(T)(x))
 
@@ -452,7 +452,7 @@ proc read*[T: tuple | object](format: static GrimeRead, reader: var GrimeReader,
     else:
       read(format, reader, e)
 
-proc byteCount*[T: tuple | object](format: static GrimeShared, x: T): int =
+proc byteCount*[T: tuple | object](format: static GrimeCommon, x: T): int =
   result = 0
   for e in x.fields:
     # for objects this branches for variants,
@@ -471,7 +471,7 @@ proc read*[N, T](format: static GrimeRead, reader: var GrimeReader, v: var array
   for e in v.mitems:
     format.read(reader, e)
 
-proc byteCount*[I, T](format: static GrimeShared, x: array[I, T]): int =
+proc byteCount*[I, T](format: static GrimeCommon, x: array[I, T]): int =
   result = 0
   for e in x.items:
     result += byteCount(format, e)
@@ -491,7 +491,7 @@ proc read*[T](format: static GrimeRead, reader: var GrimeReader, v: var seq[T]) 
   for e in v.mitems:
     format.read(reader, e)
 
-proc byteCount*[T](format: static GrimeShared, x: seq[T]): int =
+proc byteCount*[T](format: static GrimeCommon, x: seq[T]): int =
   result = 0
   for e in x.items:
     # compiler might optimize this if it doesnt branch
@@ -513,7 +513,7 @@ proc dump*[T: ref | ptr](format: static GrimeDump, dumper: var GrimeDumper, v: T
   ## and JS needs a global map to track it which can be disabled with `-d:grimeTrackJsDictReferences=false`,
   ## so dict mode cannot deal with cycles in those either
   mixin dump
-  when format.shared.dict:
+  when format.common.dict:
     dumpPointer(format, dumper, v)
   else:
     if v == nil:
@@ -524,7 +524,7 @@ proc dump*[T: ref | ptr](format: static GrimeDump, dumper: var GrimeDumper, v: T
 
 proc read*[T: ref | ptr](format: static GrimeRead, reader: var GrimeReader, v: var T) =
   mixin read
-  when format.shared.dict:
+  when format.common.dict:
     readPointer(format, reader, v)
   else:
     var exists: bool
@@ -535,7 +535,7 @@ proc read*[T: ref | ptr](format: static GrimeRead, reader: var GrimeReader, v: v
     else:
       v = nil
 
-proc byteCount*[T: ref | ptr](format: static GrimeShared, x: T): int =
+proc byteCount*[T: ref | ptr](format: static GrimeCommon, x: T): int =
   when format.dict:
     result = dictByteCount(format, x)
   else:
@@ -552,17 +552,17 @@ proc read*[T: distinct](format: static GrimeRead, reader: var GrimeReader, v: va
   format.read(reader, distinctBase(T)(v))
 
 # declared above:
-#template byteCount*[T: distinct](format: static GrimeShared, x: T): int =
+#template byteCount*[T: distinct](format: static GrimeCommon, x: T): int =
 #  byteCount(format, distinctBase(T)(x))
 
 proc dump*[T](format: static GrimeDump, s: var string, v: T) {.inline.} =
   mixin dump
   var dumper = GrimeDumper(dict: initFlushWriter(), data: initFlushWriter())
-  when format.shared.dict:
+  when format.common.dict:
     dumper.dict.startWrite()
   dumper.data.startWrite()
   dump(format, dumper, v)
-  when format.shared.dict:
+  when format.common.dict:
     var writer = initFlushWriter()
     writer.startWrite()
     merge(GrimeMerge(inner: format), writer, dumper)
@@ -572,19 +572,19 @@ proc dump*[T](format: static GrimeDump, s: var string, v: T) {.inline.} =
 
 proc dumpFlatGrime*[T](s: var string, v: T) {.inline.} =
   mixin dump
-  dump(GrimeDump(shared: GrimeShared(dict: false)), s, v)
+  dump(GrimeDump(common: GrimeCommon(dict: false)), s, v)
 
 proc dumpDictGrime*[T](s: var string, v: T) {.inline.} =
   mixin dump
-  dump(GrimeDump(shared: GrimeShared(dict: true)), s, v)
+  dump(GrimeDump(common: GrimeCommon(dict: true)), s, v)
 
 proc toFlatGrime*[T](v: T): string {.inline.} =
   mixin dump
-  dump(GrimeDump(shared: GrimeShared(dict: false)), result, v)
+  dump(GrimeDump(common: GrimeCommon(dict: false)), result, v)
 
 proc toDictGrime*[T](v: T): string {.inline.} =
   mixin dump
-  dump(GrimeDump(shared: GrimeShared(dict: true)), result, v)
+  dump(GrimeDump(common: GrimeCommon(dict: true)), result, v)
 
 proc read*[T](format: static GrimeRead, reader: var GrimeReader, _: typedesc[T]): T =
   mixin read
@@ -594,7 +594,7 @@ proc fromGrimeAs*[T](s: string, x: typedesc[T], format: static GrimeRead): T {.i
   mixin read
   result = default(T)
   var reader = GrimeReader(data: initLoadReader())
-  when format.shared.dict:
+  when format.common.dict:
     var data = initLoadReader(#[doLineColumn = false]#) # XXX byte offset instead of line column
     data.startRead(s)
     split(GrimeSplit(inner: format), data, reader)
@@ -609,10 +609,10 @@ proc fromGrimeAs*[T](s: string, x: typedesc[T], format: static GrimeRead): T {.i
     raise newException(GrimeReadError, msg)
 
 proc fromFlatGrimeAs*[T](s: string, x: typedesc[T]): T {.inline.} =
-  fromGrimeAs(s, T, GrimeRead(shared: GrimeShared(dict: false)))
+  fromGrimeAs(s, T, GrimeRead(common: GrimeCommon(dict: false)))
 
 proc fromDictGrimeAs*[T](s: string, x: typedesc[T]): T {.inline.} =
-  fromGrimeAs(s, T, GrimeRead(shared: GrimeShared(dict: true)))
+  fromGrimeAs(s, T, GrimeRead(common: GrimeCommon(dict: true)))
 
 proc fromGrime*[T](x: typedesc[T], s: string, format: static GrimeRead): T {.inline.} =
   fromGrimeAs(s, T, format)

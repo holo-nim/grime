@@ -1,13 +1,13 @@
 import fleu/[load_reader, flush_writer], std/[tables, hashes]
 
 type
-  GrimeShared* = object
+  GrimeCommon* = object
     endian*: Endianness = cpuEndian
     dict*: bool
   GrimeDump* = object
-    shared*: GrimeShared
+    common*: GrimeCommon
   GrimeRead* = object
-    shared*: GrimeShared
+    common*: GrimeCommon
     skip*: bool
       ## skip current value
 
